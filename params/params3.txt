@@ -1,0 +1,65 @@
+Params multimodel example, Ecoli & Slividans
+
+ model 1 
+
+  ecoli, data from Ec_core.RData modelorg from adfba package (added to package MADFBA)
+
+  initial constraints reactions:
+   		react = "EX_glc(e)", lb = -12
+  		react = "EX_o2(e)",  lb = -6
+		react = "EX_ac(e)",  lb = -10
+
+  initial biomass: .01
+
+  deathrate: 0		
+		
+ model 2 
+
+  Slividans, data from Slividans.RData modelorg from adfba package (added to package MADFBA)
+
+  initial constraints reactions:
+  		react = "EX_mnl(e)", lb = -7
+  		react = "EX_glc(e)", lb = -5
+  		
+  initial biomass: .0075
+
+  deathrate: 0.2		
+
+  		
+
+medium
+	substrate                 EX_ac(e), EX_o2(e), EX_glc(e), EX_mnl(e)
+	initial concentrations         10 ,       1 ,       28 ,        4
+ 		
+
+Dynamic changes
+
+nutrient changes, file "nc.tab" New proposed format, fixed columns (added to package MADFBA)
+
+Time(h)	substrate	value(mmol/l)
+0.1	EX_mnl(e)	50
+2	EX_ac(e)	10
+5	EX_ac(e)	-5
+3	EX_glc(e)	25
+8	EX_ac(e)	-1
+1	EX_glc(e)	10
+10	EX_ac(e)	15
+10.05	EX_mnl(e)	120
+5.5	EX_glc(e)	25
+
+
+Dynamic constraints, file "dc_madfba.tab" New proposed format, fixed columns (added to package MADFBA)
+
+Time	mod_id	react_id	bound	value	comments
+0.1	S_lividans_Valverde_2017	Biomass_SLI	l,u	0.9	l:.9,u:.9
+5	S_lividans_Valverde_2017	Biomass_SLI	,u	0.2	l:.9,u:.2 !!!! l>u Not solution posible
+8	S_lividans_Valverde_2017	Biomass_SLI	l,u	0.14	l:.14,u:.14 
+10	S_lividans_Valverde_2017	Biomass_SLI	,u	0.01	l:.14,u:.01 !!!! l>u Not solution posible
+16	S_lividans_Valverde_2017	Biomass_SLI	u	0.9	l:0.14,u:0.9
+24	S_lividans_Valverde_2017	Biomass_SLI	l,u	0.135	l:0.135,u:0.135
+48	S_lividans_Valverde_2017	Biomass_SLI	l,u	0.001	c
+16	S_lividans_Valverde_2017	SEC_AML	l,u	1.63e-6	c
+24	S_lividans_Valverde_2017	SEC_AML	l,u	1.63e-5	c
+48	S_lividans_Valverde_2017	SEC_AML	l,u	2.23e-7	c
+
+
