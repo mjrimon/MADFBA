@@ -1,0 +1,11 @@
+Time(h)	substrate	value(mmol/l)
+0.1	EX_mnl(e)	50
+2	EX_ac(e)	10
+5	EX_ac(e)	-5
+3	EX_glc(e)	25
+8	EX_ac(e)	-1
+1	EX_glc(e)	10
+10	EX_ac(e)	15
+10.05	EX_mnl(e)	120
+5.5	EX_glc(e)	25
+

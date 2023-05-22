@@ -1,0 +1,9 @@
+Time	mod_id	react_id	bound	value
+0.1	Ecoli_core_model	EX_mnl(e)	L	50
+2	Ecoli_core_model_2	EX_ac(e)	L	10
+5	S_lividans_Valverde_2017_2	EX_ac(e)	low	-5
+3	Ecoli_core_model	EX_glc(e)	l	25
+8	S_lividans_Valverde_2017	EX_ac(e)	L,U	-1
+1	Ecoli_core_model	EX_glc(e)	U	10
+10	Ecoli_core_model_2	EX_ac(e)	upp	15
+10.05	Ecoli_core_model_2	EX_mnl(e)	u,L	12

@@ -1,0 +1,16 @@
+Package: MADFBA
+Title: Multimodel Adaptive Dynamic FBA Simulation
+Version: 0.0.1.9200
+Authors@R: 
+    person("Maria Jose", "Rimon", , "mariajose.rimonm@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: Multimodel simulation.
+Depends:
+    R (>= 3.0.0),
+    sybil (>= 2.1.3),
+Imports:
+    glpkAPI,
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
