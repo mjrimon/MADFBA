@@ -6,12 +6,12 @@ The "params" folder in this repository holds three text files corresponding to t
 
 Inside the MADFBA package you can find:
 
-The folder "data", where you can find the models and data used also in the thesis, although you can use the models you want.
+* The folder "data", where you can find the models and data used also in the thesis, although you can use the models you want.
 
-The folder inst/extdata, where you will find the tables of nutrient changes and limits used in the thesis. They can be taken as a reference, played with or used in a completely different way.
+* The folder inst/extdata, where you will find the tables of nutrient changes and limits used in the thesis. They can be taken as a reference, played with or used in a completely different way.
 
 
-Finally, in the "R" folder you can find the 8 scripts that compose the MADFBA algorithm, these are:
+* Finally, in the "R" folder you can find the 8 scripts that compose the MADFBA algorithm, these are:
 ### MADFBA.R
 This is the main script, in charge of initializing all the necessary variables and executing the selected algorithm within the simulation. 
 It is composed of the main function "MADFBA", whose parameters are mostly similar to those of the ADFBA algorithm developed at the CNB scientific computing service. Two new parameters to mention are "contype" and "deathrate", which will be defined at the beginning. The first one refers to the type of plots which may be presented and there are three options: "legacy", "uptakerate" and "totaluptakerate". The second is the death rate, by definition it will be set to 0.
