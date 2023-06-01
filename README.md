@@ -1,10 +1,11 @@
 # MADFBA
-The Multi-model Adaptive Dynamic FBA package is a free and open source software package that has been developed as part of my master's thesis in the National Center of Biotechnology-CSIC and works from an R environment. It is dependent on the Sybil package and its function is to perform dynamic, multi-model and adaptive flux balance analysis (FBA), i.e. it allows the user to modify the environment at any time during the simulation.
+The Multi-model Adaptive Dynamic FBA package is a free and open source software package that has been developed as part of my master's thesis in the National Center of Biotechnology-CSIC and works from an R environment. It is dependent on the Sybil package and its function is to perform dynamic, multi-model and adaptive flux balance analysis (FBA), i.e. it allows the user to modify the environment at any time during the simulation. In addition, it allows several models to be included.
 The entire package can be downloaded from the "releases" section on the right.
 
 The "params" folder in this repository holds three text files corresponding to the 3 plots I plotted for my master thesis.
 
 Inside the MADFBA package you can find:
+
 The folder "data", where you can find the models and data used also in the thesis, although you can use the models you want.
 
 The folder inst/extdata, where you will find the tables of nutrient changes and limits used in the thesis. They can be taken as a reference, played with or used in a completely different way.
