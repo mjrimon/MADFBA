@@ -1,5 +1,5 @@
 #  zzz.R
-# Inspirado en sybil con ayuda, como siempre, de:
+# Inspired by sybil with help, as always, from:
 #       https://adv-r.hadley.nz/index.html
 #       stackoverflow (en este caso https://stackoverflow.com/questions/12598242/global-variables-in-packages-in-r)
 #       https://www.rdocumentation.org/

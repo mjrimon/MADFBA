@@ -1,18 +1,19 @@
-#' Crea una lista de modelos. 
+#' Create a model list. 
 #'
-#' Crea una lista de modelos. Cada modelo es a su vez una lista de elementos con nombre que contiene 
-#' todas las variables necesarias para el procesado de cada modelo, un objeto sybil::modelorg, la biomasa
-#' las reacciones excluidas en este modelo, las variables necesaria para guardar los datos de la simulación
-#' del modelo, como la biomasa existente en cada paso de la simulación
+#' Create a model list. Each model is also a list of named elements with all variables needed to process 
+#' the model. The model is an object of class sybil::modelorg
+#' The params can be a unique value meaning all models (1:n) in the models params have the same value for 
+#' example of initial biomass or a vector with a length equal to the number of models containing, in the
+#' same order that the model, their respective value 
 #'
-#' @param models Un objeto o una lista de objetos sybil::modelorg
-#' @param biomass Un elemento, biomasa de todos los modelos o un vector conteniendo la biomasa de cada modelo 
-#' @param biomassRxn reaccion biomasa de utodos los modelos o vector con la reaccion biomasa de cadad modelo
-#' @param exclUptakeRxns Una lista con las reacciones excluidas de todos los modelo o una lista de listas para cada modelo
-#' @param deathrate vector con death rate de los modelos, por defecto 0, no deathrate
+#' @param models An object or a list of objects of sybil::modelorg
+#' @param biomass Initial biomass of the models. One value -> same biomass for all models or a vector with each model biomass 
+#' @param biomassRxn Biomass reaction for the models. One value or a list of values.
+#' @param exclUptakeRxns Excluded reactions for the models. One value or a list of values.
+#' @param deathrate Death rate of the models. One value or a list of values.
 
 #'
-#' @return Lista de listas con nombre de los datos de los modelos
+#' @return A list of named lists with the models data
 #'
 #' @noRd
 makeOrganisms <- function(models, biomass, biomassRxn, exclUptakeRxns, dynamicConstraints, deathrate){
@@ -103,12 +104,6 @@ makeOrganisms <- function(models, biomass, biomassRxn, exclUptakeRxns, dynamicCo
 addOrgsToMedium <- function(models, initConcentrations, contype) {
 
     # Exclude reactions with concentrations that will not be changed 
-    # Las especificadas en el parametro exclUptakeRxns mas las 
-    # reacciones que tienen un valor de uptake pero no aparecen en
-    # el sustrato especificado ni han sido bloquedas.
-    # Estas reacciones no tendrán limite para consumir todo lo que necesiten
-    # Hay que trazar el consumo de esas sustancias. Siempre se puede obtener
-    # a posteriori con los datos de todos los flujos.
     exclUptakeRxnsUpd <- lapply(models, function(mod, subs) {
                                     exclUpdated <- mod$excReact@react_id %in% mod$exclUptakeRxns |
                                                      (mod$excReact@uptake & !mod$excReact@react_id %in% subs)
@@ -123,8 +118,8 @@ addOrgsToMedium <- function(models, initConcentrations, contype) {
     }else{
         concentrations <- lapply(models, getconcentrations, c()) #c('-1'= -1))
     }
-    # Como es adaptativo, la matrix de concentraciones tiene que contener todas las reacciones de intercambio
-    # no podemos saber de antemano si se van a realizar modificaciones y la matriz debe poder albergar todos los datos
+    # We don't know right now all environment metabolites because it could be changes during simulations
+    # therefore concentration matrix is initializaed to all exchange reactions with 0 value
     concentrationMatrix <- mapply(function(mod, concen, exc) {return(list(concen[mod$excReact@react_id]))}, models, concentrations)#, SIMPLIFY = FALSE);
 
     organisims <- addAttribute(models, 'exclUptakeRxnsUpd', exclUptakeRxnsUpd)
@@ -132,8 +127,7 @@ addOrgsToMedium <- function(models, initConcentrations, contype) {
     organisims <- addAttribute(organisims, 'concentrationMatrix', concentrationMatrix)
     organisims <- addAttribute(organisims, 'contype', contype)
 
-    # Añadimos los indices, para el proceso posterior
-    # Aquí hay que diferenciar el caso en ele que solo tengamos un modelo
+    # Add indexes for later use
     excReactInd <- mapply(function(mod, exclUptakeRxnsUpd) {
                                     return(!mod$excReact@react_id %in% exclUptakeRxnsUpd)}
                         , models, exclUptakeRxnsUpd, SIMPLIFY = FALSE)
@@ -158,17 +152,17 @@ addOrgsToMedium <- function(models, initConcentrations, contype) {
 }
 
 
-#' Obtiene el resultado de la simulacion de un modelo
+#' Get result data from a model simulation
 #'
-#' Prepara el resultado de un solo modelo en una simulación como objeto optsol_dynamicFBA o como lista
+#' gets the simmulation result from one model like an optsol_dynamicFBA object or like a list
 #'
-#' @param mod Lista con los datos de un modelo
-#' @param timeVec  Vector de tiempos de simulación
+#' @param mod List with one model data
+#' @param timeVec  Simulation Time vector
 #' @param fld fluxDistribution?
-#' @param retOptSol Devolver objeto tipo optsol_dynamicFBA?
-#' @param contype El tipo de resumen de concentraciones que se va a mostrar
+#' @param retOptSol optsol_dynamicFBA?
+#' @param contype Concentrations summary type
 #'
-#' @return Un objeto optsol_dynamicFBA o lista dependiendo del parámetro retOptSol con el resultado del modelo
+#' @return optsol_dynamicFBA object or named list lista, as retOptSol param, with simulation model result
 #'
 #' @noRd
 
@@ -183,17 +177,12 @@ getResult <- function(mod, timeVec, fld, retOptSol, contype) {
     row.names(concentmatrix) <- mod$excReact@react_id;
     row.names(mod$all_fluxes) <- mod$model@react_id;
 
-    # En el multimodelo no todos los organismos terminarán, se quedarán 
-    # sin 'consumos', al mismo tiempo. Solo tendremos datos válidos mientras
-    # el estado sea OK.
-    # ajustamos timeVec con los datos del modelo seleccionado. Ver como podemos
-    # ajustarlo para el resumen
+    # With multimodel, not all organism finish simulation at same time.
+    # We only have valid data if state is OK, so filter timeVec
     time <- timeVec[mod$all_stat==solverStatOK()]
 
-    # Si se encuentra definida una tasa de muerte, no habrá un resultado valido como
-    # solucion y aplicaremos la tasa de muerte para calcular el valor de la biomasa
-    # por lo tanto el vector de biomasa puede ser mayor que el de resultados correctos
-    # en cuyo caso hay que ajustar el vector de tiempo para recoger todos los valores
+    # If the organism has defined 'deathrate' and is dying at some simulations steps
+    # we have not ok solver state but we are applying death so filter timeVec
     if (length(mod$biomassVec) > length(time)) time <- timeVec[1:length(mod$biomassVec)]
     timeVec <- time
 
@@ -209,18 +198,12 @@ getResult <- function(mod, timeVec, fld, retOptSol, contype) {
     }
     
     ## Preparing OUTPUT
-    #concentrationMatrix,excRxnNames,timeVec,biomassVec
-    # Para mantener compatibilidad con version anterior
-    # Quitamos de la presentacion las reacciones que no cambian
 
     if (isTRUE(retOptSol)) {
         # return an optSol object
         if(is.null(mod$all_fluxes)) mod$all_fluxes=as.matrix(NA);
-        # Para mantener compatibilidad con version anterior
-        # Quitamos de la presentacion las reacciones que no cambian
-        #cm <- concentrationMatrix[!excReact@react_id %in% exclUptakeRxnsUpd,]
-        #cm <- mod$concentrationMatrix
-        return (optsol_dynamicFBA(solver = mod$lpmod@problem@solver,
+
+        return (MADFBA::optsol_dynamicFBA(solver = mod$lpmod@problem@solver,
                     method = mod$lpmod@problem@method,
                     nprob  = stepNo,
                     ncols  = mod$model@react_num,
@@ -251,49 +234,35 @@ getResult <- function(mod, timeVec, fld, retOptSol, contype) {
 }
 
 
-#' Obtiene el resumen de la simulación de todos los modelos
+#' In multimodel gets summary results of all models
 #'
-#' Prepara el resultado resumen de una simulación com objeto optsol_dynamicFBA o como lista
+#' Gets the simulation summary results of all models like an optsol_dynamicFBA object or like a list
 #'
-#' @param mods Lista con la lista de modelos de la simulacion
-#' @param mediumMatrix Matriz con las concentraciones de los substratos del medio en cada paso de la simulacion
-#' @param mediumBiomassVec Vector con la biomasa total del medio en cada paso de la simulacion
-#' @param timeVec  Vector de tiempos de simulación
-#' @param retOptSol Devolver objeto tipo optsol_dynamicFBA?
+#' @param mod List with one model data
+#' @param mediumMatrix Environment concentration matrix of substrates in every simulation step
+#' @param mediumBiomassVec Environment biomass vector in every simulation step
+#' @param timeVec  Simulation Time vector
+#' @param retOptSol optsol_dynamicFBA?
 #'
-#' @return un objeto optsol_dynamicFBA o lista dependiendo del parámetro retOptSol con el resumen de los resultados
+#' @return optsol_dynamicFBA object or named list lista, as retOptSol param, with simulation model result
 #'
 #' @noRd
+
 getResultSummary <- function(mods, mediumMatrix, mediumBiomassVec, timeVec, retOptSol) {
 
-    # Esta funcion utiliza la misma lógica que ADFBA, pero utiliza el vector
-    # de biomasa del medio y la matriz de concentraciones del medio.
-    # Aunque tal y como está implementado no necesita mods para nada, no hacemos ningún
-    # cálculo tan solo se devuelve en el caso que se devuelva una lista. Pero tampoco
-    # sería necesario puesto que cada elemento de la lista ya ha sido devuelto en el 
-    # resultado normal.    
     stepNo <- length(timeVec)
 
     colnames(mediumMatrix) <- timeVec
-    # if we save all step fluxes
-    #if (fld) colnames(mod$all_fluxes) <- timeVec[-1]
     
     ## Preparing OUTPUT
-    #concentrationMatrix,excRxnNames,timeVec,biomassVec
-    # Para mantener compatibilidad con version anterior
-    # Quitamos de la presentacion las reacciones que no cambian
-    #cm <- concentrationMatrix[!excReact@react_id %in% exclUptakeRxnsUpd,]
     cm <- mediumMatrix
     dimcm <- dim(cm)
     if (isTRUE(retOptSol)) {
         # return an optSol object
         all_fluxes <- as.matrix(NA)
         if((length(mods) == 1) & (!is.null(mods[[1]]$all_fluxes))) all_fluxes=mods[[1]]$all_fluxes
-        # Para mantener compatibilidad con version anterior
-        # Quitamos de la presentacion las reacciones que no cambian
-        #cm <- concentrationMatrix[!excReact@react_id %in% exclUptakeRxnsUpd,]
-        #cm <- mod$concentrationMatrix
-        return (optsol_dynamicFBA(solver = sybil::SYBIL_SETTINGS("SOLVER"),
+
+        return (MADFBA::optsol_dynamicFBA(solver = sybil::SYBIL_SETTINGS("SOLVER"),
                     method = sybil::SYBIL_SETTINGS("METHOD"),
                     nprob  = stepNo,
                     ncols  = dimcm[2],
@@ -311,9 +280,9 @@ getResultSummary <- function(mods, mediumMatrix, mediumBiomassVec, timeVec, retO
                   ncols  = dimcm[2],
                   nrows  = dimcm[1],
                   all_fluxes = as.matrix(NA), # mod$all_fluxes,
-                  all_stat= NA,   # Se podria crear un estado para el entorno...
-                  concentrationMatrix=cm, #concentrationMatrix,
-                  excRxnNames=rownames(cm), #concentrationMatrix),
+                  all_stat= NA,           # posibly add an environment state?
+                  concentrationMatrix=cm, 
+                  excRxnNames=rownames(cm), 
                   timeVec= timeVec,  
                   biomassVec=mediumBiomassVec,
                   mod = mods
@@ -322,15 +291,14 @@ getResultSummary <- function(mods, mediumMatrix, mediumBiomassVec, timeVec, retO
     }
 }
 
-#' Compara 2 objetos sybil::modelorg
+#' Compare 2 sybil::modelorg objects
 #'
-#' Compara dos objetos sybil::modelorg indicando si son iguales
+#' Compare two sybil::modelorg objects checking if they are equals
 #'
-#' @param mods Lista con la lista de modelos de la simulacion
-#' @param A objeto modelorg a comparar
-#' @param B objeto modelorg a comparar
+#' @param A sybil::modelorg object to compare
+#' @param B sybil::modelorg object to compare
 #'
-#' @return True si los dos modelos son iguales, sino False
+#' @return True if both models are equal else False
 #'
 #' @noRd
 isEqualModel <- function(A, B){
@@ -344,6 +312,17 @@ isEqualModel <- function(A, B){
     return(TRUE)      
 }
 
+#' Compare reactions bounds from 2 sybil::modelorg objects
+#'
+#' Compare reactions bounds from two sybil::modelorg objects checking if they are equals
+#'
+#' @param A sybil::modelorg object to compare
+#' @param B sybil::modelorg object to compare
+#' @param react_pos model reaction indexes to compare
+#'
+#' @return True if both bounds are equal else False
+#'
+#' @noRd
 isEqualModelReactBounds <- function(A, B, react_pos){
     lapply(c(A, B), function(model) {if (!is(model, "modelorg")) return(FALSE)})
     if (A@react_num != B@react_num) return(FALSE)
@@ -353,17 +332,14 @@ isEqualModelReactBounds <- function(A, B, react_pos){
 }
 
 
-#' Concentraciones iniciales de sustrato para el modelo
+#' Get initial environment concentrations for the model
 #'
-#' Obtiene un vector con nombre de las concentraciones iniciales en el medio de
-#' todas las reacciones del modelo
-#' XXX mj XXX 
-#' con las de intercambio es suficiente pero así es más fácil para los cálculos posteriores
+#' gets a named list with intial environ concentrations of all model reactions
 #'
-#' @param mod Lista con la lista de modelos de la simulacion
-#' @param initConcentrations vector con nombre de los substratos iniciales en el medio
+#' @param mod model
+#' @param initConcentrations Named list with environ initial concentrations
 #'
-#' @return un vector con nombre con las concentraciones iniciales de substrato de cada modelo 
+#' @return named list initial environ concentration for the model 
 #'
 #' @noRd
 getconcentrations <- function(mod, initConcentrations){
@@ -371,23 +347,22 @@ getconcentrations <- function(mod, initConcentrations){
     concentrations <- -mod$model@lowbnd
     names(concentrations) <- mod$model@react_id
     concentrations[names(initConcentrations)] <- initConcentrations
-    # Es posible que en el medio exista algún substrato que no corresponda
-    # con este model, la linea anterior lo añadiria, asi que lo eliminamos
+    # remove environ subtrate that are not present in the model
     concentrations <- concentrations[mod$model@react_id]
     return(concentrations)
 }
 
-#' Limite de consumo de substrato para el modelo
+#' Model substrate uptakes limit for the model
 #'
-#' Obtiene un vector con los limites de consumo de las reacciones del modelo
+#' Gets a vector with uptake limits for the model reactions
 #'
-#' @param model El modelo para obtener los limites
-#' @param excReact Reacciones de intercambio del modelo (no utilizada)
-#' @param concentrations Concentraciones deisponibles en el medio
-#' @param biomass Biomasa del modelo en el medio
-#' @param timeStep Paso de tiempo de simulacion
+#' @param model model to get uptake limits
+#' @param excReact Model exchange reactions
+#' @param concentrations Environment concentrations
+#' @param biomass Environment biomass
+#' @param timeStep Simulation time step
 #'
-#' @return un vector con nombre con el limite de consumo de subtrato para cada reaccion del modelo
+#' @return Named vector with model reactions uptake limits
 #'
 #' @noRd
 getUptakeBound <- function(model, excReact, concentrations, biomass, timeStep){
@@ -417,8 +392,20 @@ getUptakeBound <- function(model, excReact, concentrations, biomass, timeStep){
 
 }
 
+#' optimize Linear Programming problem
+#'
+#' optimize LP program to get max value of objective function
+#'
+#' @param mod model to optimize
+#' @param excReactIdx Exchange reactions index to update uptake bounds
+#' @param uptakeBound Uptake values for exchange reactions
+#' @param method Method to use for optimization
+#' @param algorithm Algorithm for optimization
+#'
+#' @return List object with the optimization results
+#'
+#' @noRd
 optimizeMADFBA <- function(mod, excReactIdx, uptakeBound, method = 'FBA', algorithm = 'fba') {
-    # puede ser un parámetro
     optsol.OK <- solverStatOK()
     mod$model@lowbnd[mod$excReactIdx]  = -uptakeBound[mod$excReactIdx]
     if (method == "directFBA") {
@@ -512,6 +499,16 @@ optimizeMADFBA <- function(mod, excReactIdx, uptakeBound, method = 'FBA', algori
 
 
 
+#' Get Fluxes Variability analisys in every simulation step
+#'
+#' EXPERIMENTAL
+#' Gets, in every step, the flux variability analisys of all reactions, saving
+#' the results in files in the working directory
+#'
+#' @param mod model to get FVA
+#' @param stepNo step simulation number
+#'
+#' @noRd
 computeFVA <- function (mod, stepNo) {
     # Do FVA and save the output
     ranges <- fluxVar(mod$model, percentage=80, verboseMode=MADFBA_SETTINGS("VERBOSE"))
@@ -535,8 +532,19 @@ computeFVA <- function (mod, stepNo) {
     print(paste('--- END FVA', stepNo, '---\n'))
 }
 
+#' Apply death rate to the model
+#'
+#' Apply exponential death rate to the model when there is no growth posibility
+#'
+#' @param mod model to apply death rate
+#' @param timeStep Step simulation time
+#' @param fld all fluxes?
+#' @param contype concentration type
+#'
+#' @return update model with death rate applied
+#' 
+#' @noRd
 applyModDeath <- function (mod, timeStep, fld, contype) {
-    #mod <- applyModDeath(mod, timeStep)
     death <- mod$deathrate * mod$biomass * timeStep
     mod$biomass <- mod$biomass - death
     mod$biomassVec <- c(mod$biomassVec,mod$biomass);
@@ -544,9 +552,10 @@ applyModDeath <- function (mod, timeStep, fld, contype) {
     if (fld)
         mod$all_fluxes = cbind(mod$all_fluxes, numeric(mod$model@react_num))
 
-    # Repetimos la ultima concentracion
+    # Repeat last concentration
     mod$concentrationMatrix <- cbind(mod$concentrationMatrix, mod$concentrations[mod$excReact@react_pos])
-    # Como no hay solucion al problema no hay consumos en este paso, añadimos 0
+    # There is no solution to LP problem therefore there is no fluxes, no uptakes 
+    # in this step, add 0
     if (contype == 'totaluptake' & length(dim(mod$exUptakeMatrix)) > 1)
         mod$exUptakeMatrix <- cbind(mod$exUptakeMatrix, mod$exUptakeMatrix[, ncol(mod$exUptakeMatrix)])
     else

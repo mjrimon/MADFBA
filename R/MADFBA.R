@@ -1,33 +1,35 @@
 
-#' Simulacion Multimodelo Adaptativo Dinámico FBA
+#' Simulation Multimodel Adaptive Dynamic FBA 
 #'
-#' Ejecuta una simulación de la evolución del ensayo con uno o varios modelos
-#' de acuerdo a los parámetros especificados
+#' Runs a simulation of the evolution of the test 
+#' with one or several models according to the specified parameters
 #'
-#' @param models Un modelo o un lista de modelos de tipo sybil::modelorg 
-#' @param substrateRxns Nombre de los substratos de las reacciones disponibles en el entorno
-#' @param initConcentrations Concentracion inicial de los substratos del entorno
-#' @param initBiomass Un entero o un vector con la biomasa inicial de los modelos 
-#' @param timeStep Paso de tiempo de simulación (horas)
-#' @param nSteps Numero de pasos que tendrá la simulación como máximo (puede terminar antes)
-#' @param exclUptakeRxns Reacciones de consumo que se excluye de la simulacion. si no se especifica, por defecto se excluyen 'EX_co2(e)','EX_o2(e)','EX_h2o(e)','EX_h(e)'
-#' @param retOptSol Establece el tipo del resultado: TRUE  un objeto optsol_dynamicFBA; FALSE una lista
-#' @param fld Indica si se deben incluir en el resultado todos los flujos de todos los pasos de la simulación
-#' @param verboseMode Nivel de infrmación presentada
-#' @param biomassRxn Nombre de la reacción de crecimiento del modelo, de la biomasa, si no se especifica se obtiene por defecto
-#' @param dynamicConstraints 
-#' @param nutrientChanges 
-#' @param method 
-#' @param logModel Modelo del que mostrar el log durante la simulación, por defecto el 0, la suma de todos
-#' @param contype Tipo de datos de concentraciones consumidas/excretadas por modelo que se guardarán en cada paso:
-#'                    'legacy' concentración de substratos aparente, incializado a concentraciones iniciales de substrato. 
-#'                    'uptakerate'  cantidad de substrato consumido/excretado en ese instante.
-#'                    'totaluptake' cantidad total de substrato consumido/excretado hasta ese instante.  
-#' @param deathrate  deathrate de los modelos
-#'                   Si es distinto de 0, valor por defecto, aplicar como tasa de muerte del organismo al quedarse sin nutrientes
+#' @param models A model or a list of models of type sybil::modelorg 
+#' @param substrateRxns Name of the substrates of the reactions available in the environment
+#' @param initConcentrations Initial concentration of environment substrates
+#' @param initBiomass An integer or a vector with the initial biomass of the models 
+#' @param timeStep Simulation time step (hours)
+#' @param nSteps Maximum number of steps the simulation will take (may end earlier)
+#' @param exclUptakeRxns Consumption reactions that are excluded from the simulation. 
+#'                       If not specified, 'EX_co2(e)','EX_o2(e)','EX_h2o(e)','EX_h(e)' are excluded by default.
+#' @param retOptSol Sets the type of the result: TRUE an optsol_dynamicFBA object; FALSE a list
+#' @param fld Indicates whether all flows of all simulation steps should be included in the result.
+#' @param verboseMode Level of information presented
+#' @param biomassRxn Name of the model growth reaction of the biomass, if not specified it is obtained by default.
+#' @param dynamicConstraints Bound reactions limits for each model or callback function.
+#' @param nutrientChanges Environment changes, table or callback function
+#' @param method Method to use in the solver to optimize the problem
+#' @param logModel Model for which to display the log during the simulation, default 0, the sum of all
+#' @param contype Type of consumed/excreted concentration data per model to be saved at each step:
+#'                    'legacy' apparent substrate concentration, initialized at initial substrate concentrations. 
+#'                    'uptakerate' amount of substrate consumed/excreted at that instant.
+#'                    'totaluptake' total amount of substrate consumed/excreted up to that instant.  
+#' @param deathrate  models deathrate
+#'                   If different from 0, default value, apply as death rate of the organism when running out of nutrients.
 #' @param ... 
 #'
-#' @return Un objeto optsol_dynamicFBA o una lista con el resultado de un modelo o una lista de objetos optsol_dynamicFBA o listas si la simulación es multimodelo
+#' @return An optsol_dynamicFBA object or a list with the result of a model 
+#'            or a list of optsol_dynamicFBA objects or lists if the simulation is a multi-model simulation.
 #' @export
 #'
 #' @examples
@@ -62,25 +64,25 @@
 #'                               )
 
 
-MADFBA <- function (models,                # 1 o lista con n modelos. Hapy parametros referentes a los modelos que habrá que definir aquí
-                substrateRxns,             # substratos que existen en el entorno, s substratos. Disponibles para todos los modelos
-                initConcentrations,        # Concentraciones iniciales de los substratos del entorno. Si se especifica un unico valor para s substratos, se inicializan todos con el mismo valor
-                initBiomass,               # 1 o lista con n biomasa de cada modelo. Si hay n modelos y 1 biomasa, se aplica la misma biomasa a todos los modelos, avisar
+MADFBA <- function (models,                # 1 or list with n models.
+                substrateRxns,             # substrates that exist in the environment, s substrates. Available for all models
+                initConcentrations,        # Initial concentrations of the surrounding substrates. If a single value is specified for s substrates, they are all initialized with the same value.
+                initBiomass,               # 1 or list with n biomass of each model. If there are n models and 1 biomass, the same biomass is applied to all the models
                 timeStep,
                 nSteps,
-                exclUptakeRxns = c('EX_co2(e)','EX_o2(e)','EX_h2o(e)','EX_h(e)'),  # Valor por defecto, no mas missing checks
+                exclUptakeRxns = c('EX_co2(e)','EX_o2(e)','EX_h2o(e)','EX_h(e)'),  
                 retOptSol = TRUE,
                 fld = FALSE,
                 verboseMode = 2, 
-                biomassRxn = "",                # Siempre necesitaremos la reacción que define la biomasa, aunque el objetivo sea otro, la biomasa es necesaria para calcular el crecimiento
-                dynamicConstraints = NULL,      # Referidas a los modelos. Funcion o lista para un modelo. Si hay n modelos... ¿Varias funciones? ¿lista de listas? repensar..
-                nutrientChanges = NULL,         # Cambio del entorno
-                method = "FBA",                 # Si hay n modelos, ¿Todos el mismo método?, ¿cada modelo un metodo?, ¿Tiene sentido biológico?
-                logModel = 0,                   # modelo del que mostrar el log durante la simulación, por defecto el 0, resumen de todos
-                contype = 'legacy',             # tipo de datos de concentraciones consumidas/excretadas por modelo que se guardarán en cada paso:
-                                                #       'legacy' concentración de substratos aparente, incializado a concentraciones iniciales de substrato. 
-                                                #       'uptakerate'  cantidad de substrato consumido/excretado en ese instante.
-                                                #       'totaluptake' cantidad total de substrato consumido/excretado hasta ese instante.  
+                biomassRxn = "",                # We will always need the reaction that defines the biomass, even if the objective is different, the biomass is necessary to calculate the growth.
+                dynamicConstraints = NULL,      # Bound reactions limits for each model or callback function.
+                nutrientChanges = NULL,         # Environment changes, table or callback function
+                method = "FBA",                 
+                logModel = 0,                   # model to display the log of during simulation, default 0, summary of all the models
+                contype = 'legacy',             # type of consumed/excreted concentration data per model to be saved at each step:
+                                                # 'legacy' apparent substrate concentration, initialized at initial substrate concentrations. 
+                                                # 'uptakerate' amount of substrate consumed/excreted at that instant.
+                                                # 'totaluptake' total amount of substrate consumed/excreted up to that instant.  
                 deathrate = 0,
                 ...){                    
 
@@ -126,23 +128,15 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
     # Use > concentrations[names(initConcentrations)] <- initConcentrations
 
     names(initConcentrations) <- substrateRxns
-    
-    # Podrían ser parámetros de configuración...
+
     stopifnot(method %in% c('FBA', 'directFBA', 'MTF', 'lpMTF', 'directMTF'))
     
     stopifnot(contype %in% c('legacy', 'uptakerate', 'totaluptake'))
 
 
-    # XXX mj XXX
-    # A partir de aquí todo es por modelo, hay que hacerlo para cada modelo.
+    # # Models
 
-    # # Modelos
-
-#    mods <- makeOrganisms(models, initBiomass, biomassRxn, exclUptakeRxns, initConcentrations, contype, timeStep, logObj)
     mods <- makeOrganisms(models, initBiomass, biomassRxn, exclUptakeRxns, dynamicConstraints, deathrate)
-
-    #mods <- addOrgsToMedium(mods, initConcentrations, contype)
-    
 
     mod <- mods[[1]]
 
@@ -157,10 +151,10 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
 
     logSubstrateFH(mod$model, mod$biomass, initConcentrations)
 
-    # Preparamos el 'posible medio'. Tiene que contener todas las reacciones de intercambio de todos
-    # los modelos. Todas las secreciones de metabolitos se realizan al medio y todos los consumos se
-    # obtienen del medio, el cual es comun para todos. Posiblemente una funcion para obtener el medio
-
+    # We prepare the 'possible medium'. It has to contain all the exchange reactions of all the models.
+    # models. All secretions of metabolites are made to the medium and all consumptions are # obtained from the medium, which is common for all.
+    # obtained from the medium, which is common for all. Possibly a function to obtain the medium
+    
     mednames = list()
     mednames <- lapply(mods, function(mod) return(c(mednames, mod$excReact@react_id)))
     mednames <- unique(unlist(mednames))
@@ -182,20 +176,18 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
     mediumBiomass <- sum(sapply(mods, function(model) model$biomass))
     mediumBiomassVec <- mediumBiomass
     
-    # En principio no guardamos la matriz de flujos del medio, como siempre podemos acceder
-    # a la suma. Prepara funcion para hacer la suma de matrices con distinto numero de filas
-    # (reacciones de cada modelo) y distinto numero de columnas (Steps donde ha estado 
-    # creciendo el modelo)
-    # mediumFluxesMatrix <- NA
+    # In principle we do not store the flow matrix of the medium, as we can always access the sum.
+    # Prepare a function to do the sum of matrices with different number of rows
+    # (reactions of each model) and different number of columns (Steps where the 
+    # model has been growing)
     
     timeVec <- 0
 
     for (stepNo in 1:nSteps){
         logInfo('\n','',type='')
         logInfo(logPrefix, 'Step', stepNo)
-        # Los cambios de nutrientes en el sustrato son a nivel de 'paso', pertenecen al
-        # medio, al entorno, y afectan a todos los modelos,
-        # ver que hay que recalcular si se produce un cambio de  nutrientes
+        # The changes of nutrients in the substrate are at the level of 'step', they belong to the
+        # environment, and affect all models
         if ( ! missing(nutrientChanges) && ! is.null(nutrientChanges) )  {
                 medium <- doNutrientChanges(nutrientChanges, mods, medium, timeStep, stepNo)
             } # if there are nutrientChanges
@@ -207,41 +199,20 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
 
             ##-----------------------------------------------------------------------------##
             # Do the simulation
-
-            ###########  XXX mj XXX  
-            # Estas 'constraints' son por modelo, ver como se puede enfocar
-            # Se puede llamar en cada paso, para todos los modelos, o solo el modelo que se quiere
-            # modificar. 
-            # if ((! missing(dynamicConstraints)) && (! is.null(dynamicConstraints))) {
-            #     dc_model <- doDynamicConstraints(dynamicConstraints, mod$model, medium, sol, timeStep, stepNo)
             if ((! missing(dynamicConstraints)) && (! is.null(mod$dynamicConstraints))) {
                 dc_model <- doDynamicConstraints(mod$dynamicConstraints, mod$model, medium, sol, timeStep, stepNo)
-                #Ha habido cambios en el modelo? 
-                # Si los cambios son en la funcion objetivo hay que recalcular el problema
-                # es asi recalcular problema con los nuevos datos
+                # Have there been changes in the model? 
+                # If the changes are in the objective function, recalculate the problem.
+                # if so recalculate problem with new data
                 if (!isEqualModel(mod$model, dc_model)) {
-                    if (!isEqualModelReactBounds(mod$model, dc_model, mod$biomassRxn))
+                    if (!isEqualModelReactBounds(mod$model, dc_model, mod$biomassRxn)) 
                         mod$lpmod <- sybil::sysBiolAlg(dc_model, algorithm = "fba")
                     mod$model <- dc_model
                 }
             } # if there are dynamicConstraints
 
-            # probably a function for low bounds calcs, constrains and environment evolution
-
-            # the model limits have changed
-            #       so we need to upfate originalUptake to reflect the new limits
-            ##        originalUptake[excReactInd] <- -lowbnd(model)[excReactInd]
-            # this is where we do the update referred to earlier in the loop
-            #modified <- lowbnd(model) != lowbnd(old.model)
-            #originalUptake[modified & excReactInd] = -lowbnd(model)[modified & excReactInd]
-            
-
-
-            #uptakeBound <- getUptakeBound(mod$model, mod$concentrations, mod$biomass, timeStep)
             uptakeBound <- getUptakeBound(mod$model, mod$excReact, medium, mod$biomass, timeStep)
-            # Las exclusiones de sustratos se realizaron al eliminarlos de excReactInd. Comprobar si hay alguna manera mas 'limpia'
-            
-            # Recalcular siempre???
+
             #mod$lpmod <- sybil::sysBiolAlg(mod$model, algorithm = "fba")
             sol <- optimizeMADFBA(mod, mod$excReactIdx, uptakeBound, method)
 
@@ -266,10 +237,6 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
             #
             #       For now, we'll do with creating a series of output files.
             #
-            #  XXX mj XXX 
-            # OJO!!!! se genera un archivo por cada modelo en cada paso, ademas hay que tener en cuenta 
-            # que los modelos tienen miles de reacciones que hay que calcular en cada paso y almacenar en el fichero
-            # puede ser una operación muuuyyyy costosa en tiempo
             if (verboseMode > 5) computeFVA(mod, stepNo)
 
             # add sol$ to all_stat vector
@@ -285,7 +252,7 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
                 if (mod$deathrate > 0) {
                     mod <- applyModDeath(mod, timeStep, fld, contype)
                 }
-                # Sumamos la biomasa que queda a la biomasa del medio
+                # We add the remaining biomass to the biomass of the medium
                 mediumStepBiomass <- mediumStepBiomass + mod$biomass
                 # We can inform lack of nutrients the first time it occurs or at all steps
                 # for all steps comment next line
@@ -299,27 +266,18 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
                 next;
             }
             
-            # if the objective function is not Biomass, this is plainly wrong!
-            #mu_obj =  sol$obj;  ##objvalue sol.f
-            # XXX j XXX any of these two alternatives should fix the issue
-            #mu_bmidx <- sol$fluxes[mod$biomassIdx]
-            #mu_bmrxn <- sol$fluxes[mod$model@react_id == mod$biomassRxn]
-            #mu <- mu_bmidx
-
-            # mu es el growth rate, el flujo de la reaccion de biomasa o crecimiento. 
-            # Independientemente de cual sea la funcion objetivo para calcular el resultado del problema,
-            # necesitamos cuanto crece la biomasa para, con ese dato, calcular el metabolito se ha consumido o excretado
-            # varma-palsson 1994 equaciones (6) y (7)
+            # mu is the growth rate, the flow rate of the biomass reaction or growth. 
+            # Regardless of what the objective function is for calculating the outcome of the problem, 
+            # we need to know how much the biomass grows so that we can calculate 
+            # the metabolite that has been consumed or excreted,
+            # with that data, calculate the metabolite consumed or excreted.
+            # varma-palsson 1994 equations (6) and (7)
             mu <- sol$fluxes[mod$biomassIdx]
             logInfo(logPrefix, 'Model:', mod$model@mod_id, 'Objective at step', stepNo, '(', stepNo * timeStep, 'h ):', mu)
 
             # get uptake fluxes after FBA/MTF
             uptakeFlux = sol$fluxes[mod$excReactIdx];
-            # Update concentrations
-            # XXX mj XXX we need previous biomass (Xo) to compute concentrations according
-            # to function (7) of varma-palsson 1994
-            # therefore new biomass must be computed later
-            # keep track of medium changes
+
             medium[mod$excReactNames]= medium[mod$excReactNames] - uptakeFlux/mu*mod$biomass*(1-exp(mu*timeStep));
             # No substrate can be negative 
             #medium[medium < sybil::SYBIL_SETTINGS("TOLERANCE")] <- 0
@@ -327,8 +285,7 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
 
             # keep track of model concentrations changes
             mod$concentrations[mod$excReactIdx]= mod$concentrations[mod$excReactIdx] - uptakeFlux/mu*mod$biomass*(1-exp(mu*timeStep));
-            # next line commented to keep adfba compatibility
-            #mod$concentrations[mod$concentrations < sybil::SYBIL_SETTINGS("TOLERANCE")] <- 0;
+
             # save concentrations
             mod$concentrationMatrix <- cbind(mod$concentrationMatrix,mod$concentrations[mod$excReact@react_pos]);
 
@@ -360,19 +317,19 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
 
             logInfo(logPrefix, 'Model:', mod$model@mod_id, 'Biomass at t =', stepNo * timeStep, mod$biomass)
 
-            # Calcular datos acumulados de todos los modelos en este paso
-            # Sumamos la biomasa a la biomasa del medio
+            # Calculate cumulative data from all models in this step
+            # Add the biomass to the biomass of the medium
             mediumStepBiomass <- mediumStepBiomass + mod$biomass
 
             modStepFluxes <- sol$fluxes[mod$substrateRxnsIdx]
             names(modStepFluxes) <- mod$model@react_id[mod$substrateRxnsIdx]
 
-            # Al ser multimodelo puede que un modelo no tenga todos los metabolitos (reacciones) que se encuentran
-            # en el substrato, por lo cual aparecera NA. Los omitimos.
+            # As a multi-model, a model may not have all the metabolites (reactions) found in the substrate, so NA will appear.
+            # in the substrate, so NA will appear. We omit them.
             modStepFluxes <- na.omit(modStepFluxes)
             
-            # Si omitimos, eliminamos algún valor, hay que tenerlo en cuenta para actualizar solo los
-            # valores disponibles, para ello utilizamos names(mStepFluxes)
+            # If we omit, delete some value, we must take it into account to update only the available values.
+            # available values, for this purpose we use names(mStepFluxes)
             mediumStepFluxes[names(modStepFluxes)] <- mediumStepFluxes[names(modStepFluxes)] + modStepFluxes
 
             # show log model step if selected
@@ -381,15 +338,15 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
             mods[[m]] <- mod
         }
 
-        # Check el estado de todos los modelos. Si todos han terminado no se puede continuar.
-        # El codigo va aquí para no añadir un nuevo elemento a timeVec que no se podría realizar
-        # ni ejecutar el posible cambio de nutrientes que está al inicio del bulcle para una segunda vuelta
-        # Por compatibilidad de funcionamiento con la versión monomodelo.
-        # Si aplicamos la tasa de muerte de los organismos hay que continuar con
-        # la simulación mientras haya bioamsa y obtener los datos de defunción y acumulados
-
-        # Es necesaria una variable para establecer el limite a partir del cual decidir que no queda biomasa?
-        # de momento SYBIL_SETTINGS('TOLERANCE')
+        # Check the status of all models. If all have finished, you can't continue.
+        # The code goes here so as not to add a new element to timeVec that could not be performed.
+        # nor execute the possible change of nutrients that is at the beginning of the loop for a second round.
+        # For compatibility of operation with the single model version.
+        # If we apply the death rate of the organisms, we have to continue 
+        # the simulation as long as there is biomass and obtain the death and accumulated data.
+        
+        # Is a variable needed to set the limit at which to decide that there is no biomass left?
+        # for the moment MADFBA_SETTINGS('TOLERANCE')
         modsDeathSim <- lapply(mods, function(mod) return(mod$deathrate > 0 & mod$biomass > MADFBA_SETTINGS('EXTINCTION')))
 
         mods_stat <- lapply(mods, function(mod) return(tail(mod$all_stat, 1)))
@@ -405,7 +362,7 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
         if (logModel==0) 
             logConcentFluxes(mediumStepBiomass, medium[substrateRxns], mediumStepFluxes, stepNo)        
         
-        # Aún no se ha terminado la simulación, añadimos un nuevo elemento al vector de tiempo para el siguiente paso      
+        # The simulation is not yet finished, we add a new element to the time vector for the next step.      
         timeVec = c(timeVec,stepNo*timeStep);
     }# end loop
     # close progress bar
@@ -413,18 +370,18 @@ MADFBA <- function (models,                # 1 o lista con n modelos. Hapy param
     ##--------------------------------------------------------------------------##
     # Simulation completed... prepare RETURN output
 
-    # Preparamos el resultado con los datos de todo el entorno, los datos de evolucion de los substratos y
-    # de crecimiento total de la biomasa del sistema
+    # We prepare the result with the data of the whole environment, the data of the evolution 
+    # of the substrates and the total biomass growth of the system.
     resultsummary <- getResultSummary(mods, mediumMatrix, mediumBiomassVec, timeVec, retOptSol) 
 
-    # Chequear si solo hay un modelo, en cuyo caso se devuelve los datos resumen, el objeto o la lista
-    # para mantener la compatibilidad en el objeto devuelto por ADFBA. Los datos resumen
-    # del sistema son los datos del unico modelo
+    # Check if there is only one model, in which case the summary data, the object or the list is returned.
+    # to maintain compatibility in the object returned by ADFBA. The summary data
+    # of the system is the data of the single model.
     if (length(mods) == 1) return(resultsummary)
 
-    # Hay mas de un modelo. Preparamos los datos de cada modelo y generamos una lista con los
-    # resultados de todos los modelos por separado mas un resutado mas con el resumen de todo 
-    # el sistema
+    # There is more than one model. We prepare the data for each model and generate 
+    # a list with the results of all the models separately plus one more result
+    # with the summary of all the models.
 
     result <- lapply(mods, getResult, timeVec, fld, retOptSol, contype)
 

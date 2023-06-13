@@ -7,12 +7,16 @@
 #' @title Read matlab model
 #'
 #' @description The generic function \code{readMATmod} imports matlab cobra models into sybil model files
-# #' @export
-# #' @rdname readMATmod
+#'              Source taken from bacArena source at https://github.com/euba/BacArena/blob/master/R/matlab.R
+#'              modified to solve erros like invalid class “modelorg” object: Wrong length of met_single!
+#'              chcecking model with validObject(model)
+#'              If we want to save the converted model with modelorg2tsv the model must be valid.
 #'
 #' @param file Full path to matlab model file
 #' @details Returns sybil model object (time needed: bacterial model ~ 10s, recon2 ~ 60s)
-#' @noRd
+#' @export
+#' @rdname readMATmod
+
 readMATmod <- function(file){
 
   print(system.time(data <- R.matlab::readMat(file)))

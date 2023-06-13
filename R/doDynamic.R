@@ -85,7 +85,7 @@ doNutrientChanges_v1file <- function (nutrientChanges, mods, concentrations, tim
             concentrations[names(delta)] <- concentrations[names(delta)] + delta  # add/sustract concentration
             
             logPrefix <- deparse(sys.call(0)[[1]])   # sys.call(-1) for caller function name
-            logInfo2('Applied Nutrient Changes, model ->', model@mod_id, 'Time step ->', tn, '/', tn+timeStep)
+            logInfo2('Applied Nutrient Changes. Time step ->', tn, '/', tn+timeStep)
             logInfo(logPrefix, delta)
         }
     }
@@ -122,12 +122,13 @@ doNutrientChanges_v2file <- function (nutrientChanges, mods, concentrations, tim
         ncSubstrateInd <- grepl("substrate", names(nutrientChanges), ignore.case = TRUE)
         ncSubstrateIdx <- which(ncSubstrateInd)
 
-        delta <- nutrientChanges[rowncInd, ncValueIdx]             # o ncn[, 3]
-        names(delta) <- nutrientChanges[rowncInd, ncSubstrateIdx]  # o ncn[, 2]
+        delta <- nutrientChanges[rowncInd, ncValueIdx]             # or ncn[, 3]
+        names(delta) <- nutrientChanges[rowncInd, ncSubstrateIdx]  # or ncn[, 2]
         concentrations[names(delta)] <- concentrations[names(delta)] + delta  # add/sustract concentration
         
+        logPrefix <- deparse(sys.call(0)[[1]])   # sys.call(-1) for caller function name
         logInfo2('Applied Nutrient Changes. Time step ->', tn, '/', tn+timeStep)
-        logInfo('', delta)
+        logInfo(logPrefix, delta)
     }
     return(concentrations)
 }
@@ -256,9 +257,10 @@ doDynamicConstraints_v2file <- function (dynamicConstraints, model, concentratio
         model@uppbnd[model@react_id %in% names(dcub)] <- dcub
 
 
+        logPrefix <- deparse(sys.call(0)[[1]])   # sys.call(-1) for caller function name
         logInfo2('Applied Dynamic Constrains, model ->', model@mod_id, 'Time step ->', tn, '/', tn+timeStep)
-        logInfo('lowbnd ->', names(dclb), dclb)
-        logInfo('uppbnd ->', names(dcub), dcub)
+        logInfo(logPrefix, 'lowbnd ->', names(dclb), 'old:', old.model@lowbnd[match(names(dclb), model@react_id)], 'new:', dclb)
+        logInfo(logPrefix, 'uppbnd ->', names(dcub), 'old:', old.model@uppbnd[match(names(dcub), model@react_id)], 'new:', dcub)
     }
     return(model)
 }
