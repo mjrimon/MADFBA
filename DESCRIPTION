@@ -1,6 +1,6 @@
 Package: MADFBA
 Title: Multimodel Adaptive Dynamic FBA Simulation
-Version: 0.0.1.9200
+Version: 0.0.1.9600
 Authors@R: 
     person("Maria Jose", "Rimon", , "mariajose.rimonm@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
