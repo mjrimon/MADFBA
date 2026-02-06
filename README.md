@@ -1,5 +1,5 @@
 # MADFBA
-The Multi-model Adaptive Dynamic FBA package is a free and open source software package that has been developed as part of my master's thesis in the National Center of Biotechnology-CSIC and works from an R environment. It is dependent on the Sybil package and its function is to perform dynamic, multi-model and adaptive flux balance analysis (FBA), i.e. it allows the user to modify the environment at any time during the simulation. In addition, it allows several models to be included.
+The Multi-model Adaptive Dynamic FBA package is a free and open source software package that has been developed as part of my master's thesis at the National Center of Biotechnology-CSIC and works from an R environment. It is dependent on the Sybil package and its function is to perform dynamic, multi-model and adaptive flux balance analysis (FBA), i.e. it allows the user to modify the environment at any time during the simulation. In addition, it allows several models to be included.
 The entire package can be downloaded from the "releases" section on the right.
 
 The "params" folder in this repository holds three text files corresponding to the 3 plots I plotted for my master thesis.
@@ -10,7 +10,6 @@ Inside the MADFBA package you can find:
 
 * The folder inst/extdata, where you will find the tables of nutrient changes and limits used in the thesis. They can be taken as a reference, played with or used in a completely different way.
 
-
 * Finally, in the "R" folder you can find the 8 scripts that compose the MADFBA algorithm, these are:
 ### MADFBA.R
 This is the main script, in charge of initializing all the necessary variables and executing the selected algorithm within the simulation. 
@@ -19,7 +18,7 @@ The main loop within this script is defined by a pre-specified maximum number of
 
 The way the loop works is as follows: over a series of steps and as long as the system can evolve, it will check for changes in the medium and update them. Then, the variables will be initialized and the dynamic constraints, if any, will be applied to each of the models. It is now when optimization occurs with the selected algorithm and solver. After this, a check is made to see if the model being run has exhausted all its metabolites, if so, it moves on to the next one and, in addition, the death rate is applied if it has been specified. If the substrate has not been exhausted, the growth rates are calculated, updated and the model states and fluxes, biomass, consumptions, etc. are saved. Finally, a summary of the whole procedure is saved.
 ### MADFBA_functions.R
-Script with the main functions of the package defined.
+Script with the main package's functions defined.
 ### MADFBA_logfunctions.R
 Script with the package's log functions, i.e. functions that present information.
 ### MADFBA_utils.R
